@@ -145,7 +145,8 @@ describe('Shopping List', function() {
 
 describe('Recipes', function(){
   before(function(){
-    return runServer(); });
+    return runServer();
+  });
   after(function(){
     return closeServer();
   });
@@ -163,12 +164,64 @@ describe('Recipes', function(){
       res.body.forEach(function(item){
         item.should.be.a('object');
         item.should.include.keys(expectedKeys);
-
       });
-
-    }
+    })
   })
 
+  it('should return a new item on POST', function() {
+    const recipeItem = {
+      name: 'Cherry Pie',
+      ingredients: ['cherries', 'dough', 'brown sugar']
+    }
+    return chai.request(app)
+    .post('/recipes')
+    .send(recipeItem)
 
+    .then(function(res) {
+      res.should.have.status(201);
+      res.should.be.json;
+      res.body.should.be.a('object');
+      const expectedKeys = ['name','id','ingredients']
+      res.body.should.include.keys(expectedKeys);
+      res.body.id.should.not.be.null;
+      });
+    });
 
-})
+  it('should delete a recipe item on DELETE', function() {
+    // grab one recipe first
+    return chai.request(app)
+    .get('/recipes')
+    .then(function(res) {
+      let id = res.body[0].id;
+      return chai.request(app)
+        .delete(`/recipes/${id}`)
+        .then(function(res) {
+          res.should.have.status(204);
+        });
+    })
+  });
+
+  it('should return updated item on PUT', function() {
+    let updatedItem = {
+      name: 'Apple Pie',
+      ingredients: ['dough', 'apples', 'brown sugar']
+    };
+
+    return chai.request(app)
+    .get('/recipes')
+    .then(function(res) {
+      updatedItem.id = res.body[0].id;
+
+      return chai.request(app)
+      .put(`/recipes/${updatedItem.id}`)
+      .send(updatedItem);
+    })
+      .then(function(res) {
+        res.should.have.status(200);
+        res.should.be.json;
+        res.body.should.be.a('object');
+        res.body.name.should.equal('Apple Pie');
+        res.body.should.deep.equal(updatedItem);
+      });
+  });
+});
